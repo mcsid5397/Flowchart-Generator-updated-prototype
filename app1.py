@@ -38,17 +38,22 @@ MODEL_PRIORITY = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro",
 
 # FUNCTION clean_mermaid_output to output the mermaid.js file with no errors
 def clean_mermaid_output(text: str) -> str:
-    """Removes markdown code blocks and conversational filler."""
-    # 1. Remove markdown backticks and 'mermaid' tags
+    # 1. Remove literal escaped newlines and quotes that cloud headers sometimes add
+    text = text.replace('\\n', '\n').replace('\\"', '"')
+    
+    # 2. Strip all markdown wrappers
     text = re.sub(r"```mermaid", "", text, flags=re.IGNORECASE)
     text = re.sub(r"```", "", text)
     
-    # 2. Find where 'graph TD' actually starts and cut off everything before it
-    match = re.search(r"graph\s+\w+", text, re.IGNORECASE)
+    # 3. Find the ACTUAL start of the graph
+    # This ignores any "Here is your flowchart" conversational filler
+    match = re.search(r"graph\s+(TD|LR|TB|BT|RL)", text, re.IGNORECASE)
     if match:
         text = text[match.start():]
     
-    # 3. Final trim of whitespace
+    # 4. Remove any trailing backticks or notes
+    text = text.split("```")[0]
+    
     return text.strip()
 
 # The actual setup that passes the user input with the available model and returns 
